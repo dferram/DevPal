@@ -1,0 +1,51 @@
+# DevPal Project Reorganization .gitignore
+
+# --- Global / OS ---
+.DS_Store
+Thumbs.db
+*.log
+.env
+.env.local
+.env.*.local
+
+# --- Frontend (Expo / Node) ---
+frontend/node_modules/
+frontend/.expo/
+frontend/web-build/
+frontend/dist/
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/.env*
+
+# Android build artifacts (if tracked)
+frontend/android/build/
+frontend/android/.gradle/
+frontend/android/app/build/
+frontend/android/*.iml
+
+# --- Backend (Python / FastAPI) ---
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/.venv/
+backend/venv/
+backend/env/
+backend/ENV/
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/backend_error.log
+
+# Database
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# --- IDEs ---
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
