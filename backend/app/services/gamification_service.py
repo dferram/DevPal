@@ -1,72 +1,45 @@
-"""
-Servicio de gamificación: Leaderboard, Badges y cálculo de XP.
-"""
-
-from sqlalchemy.orm import Session
-from sqlalchemy import desc, func
 from typing import List, Dict, Any, Optional
-from app.models.db_models import (
-    Usuario, PerfilUsuario, DesafioDiario, ProgresoDesafioDiario, UsuarioEvento,
-    Badge, UsuarioBadge
-)
-
+import uuid
+import json
+from datetime import datetime
+from app.db import execute_query, execute_one, get_db_connection
 
 class GamificationService:
-    """Gestiona el sistema de recompensas, badges y leaderboard."""
+    """Gestiona el sistema de recompensas, badges y leaderboard usando SQL puro."""
     
-    def __init__(self, db: Session):
-        self.db = db
+    def __init__(self):
+        pass
     
-    def calcular_xp_usuario(self, perfil: PerfilUsuario) -> Dict[str, int]:
-        """
-        Calcula XP total de un usuario basado en su perfil.
-        
-        Returns:
-            dict con 'xp_actual' y 'xp_next_level'
-        """
-        if not perfil:
-            return {"xp_actual": 0, "xp_next_level": 1000}
-        
-        # Base XP del nivel actual
-        base_xp = (perfil.nivel - 1) * 1000
+    def calcular_xp_usuario(self, perfil_dict: Dict[str, Any], usuario_id: str) -> Dict[str, Any]:
+        """Calcula XP total de un usuario."""
+        if not perfil_dict:
+            return {"xp_actual": 0, "xp_nivel_actual": 0, "xp_next_level": 1000, "nivel_calculado": 1}
         
         # XP ganada por actividades
-        # XP ganada por actividades (incluyendo proyectos manuales si se requiere, por ahora eventos/retos)
-        xp_events = perfil.eventos_asistidos * 150
-        xp_certs = perfil.certificados * 500
-        xp_achievements = perfil.logros * 200
-        xp_streak = perfil.racha_dias * 20
+        xp_events = perfil_dict.get('eventos_asistidos', 0) * 150
+        xp_certs = perfil_dict.get('certificados', 0) * 500
+        xp_achievements = perfil_dict.get('logros', 0) * 200
+        xp_streak = perfil_dict.get('racha_dias', 0) * 20
         
-        # Sumar bonus de badges
-        usuario = perfil.usuario
-        xp_badges = sum(
-            ub.badge.xp_bonus 
-            for ub in usuario.badges 
-            if ub.badge
-        )
-
-        # Proyectos manuales (ej: 300 XP por proyecto)
-        xp_proyectos = 0
-        if hasattr(usuario, 'proyectos'):
-             xp_proyectos = len(usuario.proyectos) * 300
+        # XP de badges
+        badge_xp_row = execute_one("""
+            SELECT SUM(b.xp_bonus) FROM badges b 
+            JOIN usuario_badges ub ON b.id = ub.badge_id 
+            WHERE ub.usuario_id = %s
+        """, (usuario_id,))
+        xp_badges = badge_xp_row[0] if badge_xp_row and badge_xp_row[0] else 0
         
-        # XP TOTAL ACUMULADO
+        # XP de proyectos
+        proj_count_row = execute_one("SELECT COUNT(*) FROM proyectos_usuario WHERE usuario_id = %s", (usuario_id,))
+        xp_proyectos = proj_count_row[0] * 300 if proj_count_row else 0
+        
         xp_total = xp_events + xp_certs + xp_achievements + xp_streak + xp_badges + xp_proyectos
-        
-        # CÁLCULO DE NIVEL: Cada 1000 XP es un nivel. Nivel 1 es 0-999 XP.
-        # Nivel = floor(xp_total / 1000) + 1
         nivel_calculado = (xp_total // 1000) + 1
         
-        # XP para el siguiente nivel (siempre múltiplo de 1000 superior)
-        xp_next_level_total = nivel_calculado * 1000
-        
-        # Si el nivel calculado es mayor al guardado, podríamos actualizarlo aquí o dejar que un proceso lo haga
-        # Para visualización, retornamos el calculado.
-        
         return {
-            "xp_actual": xp_total,           # XP Total acumulado en la vida
-            "xp_nivel_actual": xp_total % 1000, # XP dentro del nivel actual (barra de progreso)
-            "xp_next_level": 1000,           # Meta del nivel (siempre 1000 en este modelo lineal)
+            "xp_actual": xp_total,
+            "xp_nivel_actual": xp_total % 1000,
+            "xp_next_level": 1000,
             "nivel_calculado": nivel_calculado
         }
     
@@ -76,234 +49,152 @@ class GamificationService:
         offset: int = 0,
         filtro_lenguaje: Optional[str] = None
     ) -> List[Dict[str, Any]]:
+        query = """
+            SELECT u.id, u.nombre, u.apellidos, u.avatar_url, p.nivel, p.logros, p.racha_dias, p.eventos_asistidos, p.certificados
+            FROM usuarios u
+            JOIN perfiles_usuario p ON u.id = p.usuario_id
         """
-        Obtiene el leaderboard global ordenado por XP.
-        
-        Args:
-            limite: Número de usuarios a retornar
-            offset: Paginación
-            filtro_lenguaje: Filtrar por lenguaje de programación
-        
-        Returns:
-            Lista de usuarios con su ranking y XP
-        """
-        from sqlalchemy.orm import joinedload
-        
-        query = self.db.query(Usuario, PerfilUsuario)\
-            .join(PerfilUsuario, Usuario.id == PerfilUsuario.usuario_id)\
-            .options(joinedload(Usuario.badges).joinedload(UsuarioBadge.badge))
-        
-        # Filtro opcional por lenguaje
+        params = []
         if filtro_lenguaje:
-            from app.models.db_models import LenguajeUsuario
-            query = query.join(
-                LenguajeUsuario,
-                Usuario.id == LenguajeUsuario.usuario_id
-            ).filter(LenguajeUsuario.lenguaje == filtro_lenguaje)
-        
-        # Obtener usuarios ordenados por nivel y logros
-        usuarios = query.order_by(
-            desc(PerfilUsuario.nivel),
-            desc(PerfilUsuario.logros),
-            desc(PerfilUsuario.racha_dias)
-        ).limit(limite).offset(offset).all()
-        
-        # Calcular XP y armar leaderboard
-        leaderboard = []
-        for rank, (usuario, perfil) in enumerate(usuarios, start=offset + 1):
-            xp_data = self.calcular_xp_usuario(perfil)
+            query += " JOIN lenguajes_usuario l ON u.id = l.usuario_id WHERE l.lenguaje = %s"
+            params.append(filtro_lenguaje)
             
-            # Contar badges desbloqueados (sin query adicional)
-            badges_count = len(usuario.badges)
+        query += " ORDER BY p.nivel DESC, p.logros DESC, p.racha_dias DESC LIMIT %s OFFSET %s"
+        params.extend([limite, offset])
+        
+        rows = execute_query(query, params, fetch=True)
+        leaderboard = []
+        for rank, r in enumerate(rows, start=offset + 1):
+            u_id = str(r[0])
+            perfil_dict = {
+                "nivel": r[4], "logros": r[5], "racha_dias": r[6], 
+                "eventos_asistidos": r[7], "certificados": r[8]
+            }
+            xp_data = self.calcular_xp_usuario(perfil_dict, u_id)
+            
+            # Count badges
+            badges_count_row = execute_one("SELECT COUNT(*) FROM usuario_badges WHERE usuario_id = %s", (u_id,))
+            badges_count = badges_count_row[0] if badges_count_row else 0
             
             leaderboard.append({
                 "ranking": rank,
-                "usuario_id": str(usuario.id),
-                "nombre": usuario.nombre,
-                "apellidos": usuario.apellidos,
-                "avatar_url": usuario.avatar_url,
-                "nivel": perfil.nivel,
+                "usuario_id": u_id,
+                "nombre": r[1],
+                "apellidos": r[2],
+                "avatar_url": r[3],
+                "nivel": r[4],
                 "xp_total": xp_data["xp_actual"],
-                "racha_dias": perfil.racha_dias,
+                "racha_dias": r[6],
                 "badges_count": badges_count,
-                "eventos_asistidos": perfil.eventos_asistidos
+                "eventos_asistidos": r[7]
             })
         
         return leaderboard
     
     def get_usuario_ranking(self, usuario_id: str) -> Dict[str, Any]:
-        """
-        Obtiene el ranking específico de un usuario.
+        # Simplificando para no traer 10000 usuarios en memoria si es posible
+        # Pero para mantener la lógica de percentil necesitamos el total
+        total_usuarios_row = execute_one("SELECT COUNT(*) FROM usuarios")
+        total_usuarios = total_usuarios_row[0] if total_usuarios_row else 1
         
-        Returns:
-            Posición en el leaderboard y datos de progreso
-        """
-        # Obtener todos los usuarios con XP calculado
-        leaderboard_completo = self.get_leaderboard(limite=10000)
+        # Encontrar ranking por XP (requiere subquery compleja o traer lista)
+        # Vamos a traer el top 1000 para el ranking
+        leaderboard = self.get_leaderboard(limite=1000, offset=0)
         
-        # Buscar posición del usuario
-        for entry in leaderboard_completo:
+        for entry in leaderboard:
             if entry["usuario_id"] == usuario_id:
                 return {
                     "ranking_global": entry["ranking"],
                     "xp_total": entry["xp_total"],
                     "nivel": entry["nivel"],
-                    "percentil": round((1 - entry["ranking"] / len(leaderboard_completo)) * 100, 1)
+                    "percentil": round((1 - entry["ranking"] / total_usuarios) * 100, 1)
                 }
         
-        return {
-            "ranking_global": None,
-            "xp_total": 0,
-            "nivel": 1,
-            "percentil": 0
-        }
+        return {"ranking_global": None, "xp_total": 0, "nivel": 1, "percentil": 0}
     
     def verificar_y_desbloquear_badges(self, usuario_id: str) -> List[Dict[str, Any]]:
-        """
-        Verifica si el usuario cumple criterios para nuevos badges.
+        perfil_row = execute_one("SELECT nivel, racha_dias, eventos_asistidos, certificados, logros FROM perfiles_usuario WHERE usuario_id = %s", (usuario_id,))
+        if not perfil_row: return []
         
-        Returns:
-            Lista de badges recién desbloqueados
-        """
-        usuario = self.db.query(Usuario).filter(Usuario.id == usuario_id).first()
-        if not usuario:
-            return []
+        perfil = {"nivel": perfil_row[0], "racha_dias": perfil_row[1], "eventos_asistidos": perfil_row[2]}
         
-        perfil = usuario.perfil
+        todos_badges = execute_query("SELECT id, nombre, descripcion, icono, color, rareza, criterio_json, xp_bonus FROM badges", fetch=True)
+        desbloqueados_rows = execute_query("SELECT badge_id FROM usuario_badges WHERE usuario_id = %s", (usuario_id,), fetch=True)
+        desbloqueados_ids = {str(r[0]) for r in desbloqueados_rows}
+        
         nuevos_badges = []
-        
-        # Obtener todos los badges disponibles
-        todos_badges = self.db.query(Badge).all()
-        
-        # Badges ya desbloqueados por el usuario
-        badges_desbloqueados_ids = {ub.badge_id for ub in usuario.badges}
-        
-        for badge in todos_badges:
-            if badge.id in badges_desbloqueados_ids:
-                continue  # Ya tiene este badge
-            
-            criterio = badge.criterio_json
-            cumple = False
-            
-            # Evaluar criterios según tipo
-            if criterio.get("tipo") == "racha":
-                cumple = perfil.racha_dias >= criterio.get("dias", 0)
-            
-            elif criterio.get("tipo") == "desafios_completados":
-                desafios_completados = self.db.query(ProgresoDesafioDiario).filter(
-                    ProgresoDesafioDiario.usuario_id == usuario_id,
-                    ProgresoDesafioDiario.estado == "completado"
-                ).count()
-                cumple = desafios_completados >= criterio.get("cantidad", 0)
-            
-            elif criterio.get("tipo") == "desafios_dificiles":
-                desafios_dificiles = self.db.query(ProgresoDesafioDiario).join(
-                    DesafioDiario,
-                    ProgresoDesafioDiario.desafio_id == DesafioDiario.id
-                ).filter(
-                    ProgresoDesafioDiario.usuario_id == usuario_id,
-                    ProgresoDesafioDiario.estado == "completado",
-                    DesafioDiario.dificultad == "Difícil"
-                ).count()
-                cumple = desafios_dificiles >= criterio.get("cantidad", 0)
-            
-            elif criterio.get("tipo") == "eventos_asistidos":
-                cumple = perfil.eventos_asistidos >= criterio.get("cantidad", 0)
-            
-            elif criterio.get("tipo") == "nivel":
-                cumple = perfil.nivel >= criterio.get("nivel_minimo", 0)
-            
-            # Si cumple, desbloquear badge
-            if cumple:
-                nuevo_usuario_badge = UsuarioBadge(
-                    usuario_id=usuario_id,
-                    badge_id=badge.id,
-                    progreso_actual=100,  # 100% completado
-                    notificado=False
-                )
-                self.db.add(nuevo_usuario_badge)
-                
-                nuevos_badges.append({
-                    "id": str(badge.id),
-                    "nombre": badge.nombre,
-                    "descripcion": badge.descripcion,
-                    "icono": badge.icono,
-                    "color": badge.color,
-                    "rareza": badge.rareza,
-                    "xp_bonus": badge.xp_bonus
-                })
-        
-        if nuevos_badges:
-            self.db.commit()
-        
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                for b in todos_badges:
+                    b_id = str(b[0])
+                    if b_id in desbloqueados_ids: continue
+                    
+                    criterio = b[6] # criterio_json
+                    if isinstance(criterio, str): criterio = json.loads(criterio)
+                    
+                    cumple = False
+                    tipo = criterio.get("tipo")
+                    if tipo == "racha":
+                        cumple = perfil["racha_dias"] >= criterio.get("dias", 0)
+                    elif tipo == "desafios_completados":
+                        count = execute_one("SELECT COUNT(*) FROM progreso_desafio_diario WHERE usuario_id = %s AND estado = 'completado'", (usuario_id,))[0]
+                        cumple = count >= criterio.get("cantidad", 0)
+                    elif tipo == "eventos_asistidos":
+                        cumple = perfil["eventos_asistidos"] >= criterio.get("cantidad", 0)
+                    elif tipo == "nivel":
+                        cumple = perfil["nivel"] >= criterio.get("nivel_minimo", 0)
+                        
+                    if cumple:
+                        cur.execute("INSERT INTO usuario_badges (id, usuario_id, badge_id, progreso_actual) VALUES (%s, %s, %s, %s)",
+                                   (str(uuid.uuid4()), usuario_id, b_id, 100))
+                        nuevos_badges.append({
+                            "id": b_id, "nombre": b[1], "descripcion": b[2], "icono": b[3],
+                            "color": b[4], "rareza": b[5], "xp_bonus": b[7]
+                        })
         return nuevos_badges
     
     def get_badges_usuario(self, usuario_id: str) -> Dict[str, Any]:
-        """
-        Obtiene todos los badges de un usuario.
+        rows = execute_query("""
+            SELECT b.id, b.nombre, b.descripcion, b.icono, b.color, b.rareza, b.xp_bonus, ub.desbloqueado_at 
+            FROM badges b JOIN usuario_badges ub ON b.id = ub.badge_id 
+            WHERE ub.usuario_id = %s
+        """, (usuario_id,), fetch=True)
         
-        Returns:
-            Badges desbloqueados y próximos badges cercanos
-        """
-        usuario = self.db.query(Usuario).filter(Usuario.id == usuario_id).first()
-        if not usuario:
-            return {"desbloqueados": [], "proximos": []}
+        desbloqueados = [
+            {"id": str(r[0]), "nombre": r[1], "descripcion": r[2], "icono": r[3], "color": r[4], 
+             "rareza": r[5], "xp_bonus": r[6], "desbloqueado_at": r[7].isoformat() if r[7] else None}
+            for r in rows
+        ]
         
-        # Badges desbloqueados
-        desbloqueados = []
-        for ub in usuario.badges:
-            desbloqueados.append({
-                "id": str(ub.badge_id),
-                "nombre": ub.badge.nombre,
-                "descripcion": ub.badge.descripcion,
-                "icono": ub.badge.icono,
-                "color": ub.badge.color,
-                "rareza": ub.badge.rareza,
-                "xp_bonus": ub.badge.xp_bonus,
-                "desbloqueado_at": ub.desbloqueado_at.isoformat()
-            })
-        
-        # Próximos badges (aún no desbloqueados)
-        badges_desbloqueados_ids = {ub.badge_id for ub in usuario.badges}
-        proximos_badges = self.db.query(Badge).filter(
-            ~Badge.id.in_(badges_desbloqueados_ids)
-        ).limit(5).all()
-        
+        # Proximos
+        desb_ids = [str(r[0]) for r in rows]
+        if desb_ids:
+            placeholders = ', '.join(['%s'] * len(desb_ids))
+            query = f"SELECT id, nombre, descripcion, icono, color, rareza, criterio_json FROM badges WHERE id NOT IN ({placeholders}) LIMIT 5"
+            prox_rows = execute_query(query, tuple(desb_ids), fetch=True)
+        else:
+            prox_rows = execute_query("SELECT id, nombre, descripcion, icono, color, rareza, criterio_json FROM badges LIMIT 5", fetch=True)
+            
         proximos = []
-        perfil = usuario.perfil
-        
-        for badge in proximos_badges:
-            criterio = badge.criterio_json
-            progreso_actual = 0
-            progreso_total = 100
-            
-            # Calcular progreso según tipo
-            if criterio.get("tipo") == "racha" and perfil:
-                progreso_actual = min(perfil.racha_dias, criterio.get("dias", 0))
-                progreso_total = criterio.get("dias", 0)
-            elif criterio.get("tipo") == "eventos_asistidos" and perfil:
-                progreso_actual = min(perfil.eventos_asistidos, criterio.get("cantidad", 0))
-                progreso_total = criterio.get("cantidad", 0)
-            
+        perfil_row = execute_one("SELECT racha_dias, eventos_asistidos FROM perfiles_usuario WHERE usuario_id = %s", (usuario_id,))
+        for p in prox_rows:
+            criterio = p[6]
+            if isinstance(criterio, str): criterio = json.loads(criterio)
+            prog_act = 0
+            prog_tot = 100
+            if criterio.get("tipo") == "racha" and perfil_row:
+                prog_act = min(perfil_row[0], criterio.get("dias", 0))
+                prog_tot = criterio.get("dias", 0)
+            elif criterio.get("tipo") == "eventos_asistidos" and perfil_row:
+                prog_act = min(perfil_row[1], criterio.get("cantidad", 0))
+                prog_tot = criterio.get("cantidad", 0)
+                
             proximos.append({
-                "id": str(badge.id),
-                "nombre": badge.nombre,
-                "descripcion": badge.descripcion,
-                "icono": badge.icono,
-                "color": badge.color,
-                "rareza": badge.rareza,
-                "progreso_actual": progreso_actual,
-                "progreso_total": progreso_total
+                "id": str(p[0]), "nombre": p[1], "descripcion": p[2], "icono": p[3], "color": p[4], 
+                "rareza": p[5], "progreso_actual": prog_act, "progreso_total": prog_tot
             })
-        
-        return {
-            "desbloqueados": desbloqueados,
-            "proximos": proximos
-        }
+            
+        return {"desbloqueados": desbloqueados, "proximos": proximos}
 
-
-from fastapi import Depends
-from app.database import get_db
-
-def get_gamification_service(db: Session = Depends(get_db)) -> GamificationService:
-    return GamificationService(db)
+def get_gamification_service() -> GamificationService:
+    return GamificationService()

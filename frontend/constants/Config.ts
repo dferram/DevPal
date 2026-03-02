@@ -1,5 +1,4 @@
-const DEFAULT_API_BASE_URL =
-    'https://devpalbackend-f9ftf7epesfhacer.mexicocentral-01.azurewebsites.net';
+const DEFAULT_API_BASE_URL = 'http://127.0.0.1:8001';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL ?? DEFAULT_API_BASE_URL;
 const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `${API_BASE_URL}/api`;

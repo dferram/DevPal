@@ -47,8 +47,9 @@ async def validate_security_config():
 async def root():
     return {
         "status": "online",
-        "message": "DevPal API está funcionando correctamente en Azure",
+        "message": "DevPal API is running with Raw PostgreSQL",
         "version": "1.0.0",
+        "port": settings.PORT,
         "docs": "/docs"
     }
 
@@ -81,3 +82,7 @@ async def shutdown_event():
         stop_scheduler()
     except ImportError:
         pass
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app.main:app", host="0.0.0.0", port=settings.PORT, reload=True)
