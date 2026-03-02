@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     AZURE_STORAGE_CONNECTION_STRING: str | None = None
     
     # Application Settings
+    PORT: int = 8001
     ENVIRONMENT: str = "development"
     LOG_LEVEL: str = "INFO"
     DEBUG: bool = False
