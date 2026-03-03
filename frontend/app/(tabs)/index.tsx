@@ -18,6 +18,7 @@ import { BentoCard } from "@/components/BentoCard";
 import { ExpandableEventCard } from "@/components/ExpandableEventCard"; // Needs update? We'll see.
 import { ActiveHeader } from "@/app/components/ActiveHeader";
 import { COLORS as OLD_COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOWS } from "@/constants/designTokens";
+import { ensureArray } from "@/utils/errorHandler";
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -110,9 +111,10 @@ export default function HomeScreen() {
 
       const category = categoryMap[activeFilter];
       const data = await EventsService.getAll(category, 50);
-      setEvents(data);
+      setEvents(ensureArray(data));
     } catch (error) {
       console.error("Error loading events:", error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }

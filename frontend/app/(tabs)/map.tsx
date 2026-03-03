@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import MapView from "@/components/MapView";
 import { EventsService } from "@/services/eventsService";
 import { BlurView } from "expo-blur";
+import { ensureArray } from "@/utils/errorHandler";
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -52,7 +53,7 @@ export default function MapScreen() {
 
   useEffect(() => {
     if (id && events.length > 0) {
-      const targetEvent = events.find(e => e.id === id);
+      const targetEvent = ensureArray(events).find(e => e.id === id);
       if (targetEvent) {
         setSelectedPin(id);
         const newRegion = {
@@ -70,7 +71,7 @@ export default function MapScreen() {
     try {
       setLoading(true);
       const data = await EventsService.getAll(undefined, 100);
-      const mapEvents = data.filter((e: any) =>
+      const mapEvents = ensureArray(data).filter((e: any) =>
         e.latitud && e.longitud &&
         !isNaN(parseFloat(e.latitud)) && !isNaN(parseFloat(e.longitud)) &&
         parseFloat(e.latitud) !== 0 && parseFloat(e.longitud) !== 0
@@ -78,6 +79,7 @@ export default function MapScreen() {
       setEvents(mapEvents);
     } catch (error) {
       console.error("Error loading map events:", error);
+      setEvents([]);
     } finally {
       setLoading(false);
     }
@@ -94,9 +96,9 @@ export default function MapScreen() {
     router.replace('/(auth)/welcome');
   };
 
-  const selectedEvent = events.find(e => e.id === selectedPin);
+  const selectedEvent = ensureArray(events).find(e => e.id === selectedPin);
 
-  const mapMarkers = events.map(event => ({
+  const mapMarkers = ensureArray(events).map(event => ({
     id: event.id,
     coordinate: {
       latitude: parseFloat(event.latitud),

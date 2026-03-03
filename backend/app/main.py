@@ -1,8 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.config import get_settings
 from app.middleware.simple_rate_limiter import CustomRateLimitMiddleware
+from app.utils.exception_handlers import (
+    validation_exception_handler,
+    http_exception_handler,
+    general_exception_handler
+)
 import logging
 import os
 
@@ -14,6 +21,11 @@ app = FastAPI(
     description="API para DevPal - Plataforma de desarrollo profesional",
     version="1.0.0"
 )
+
+# Register exception handlers
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(StarletteHTTPException, http_exception_handler)
+app.add_exception_handler(Exception, general_exception_handler)
 
 if not os.path.exists("static/uploads"):
     os.makedirs("static/uploads", exist_ok=True)
@@ -40,8 +52,8 @@ async def validate_security_config():
     if settings.CORS_ORIGINS == "*" or (origins and origins[0] == "*"):
         logger.warning("⚠️ CORS configurado como '*' - Permitido para compatibilidad con Expo")
     
-    logger.info(f"✅ CORS activo para: {origins}")
-    logger.info(f"🌍 Ambiente: {getattr(settings, 'ENVIRONMENT', 'development')}")
+    logger.info("✅ CORS activo para: %s", origins)
+    logger.info("🌍 Ambiente: %s", getattr(settings, 'ENVIRONMENT', 'development'))
 
 @app.get("/")
 async def root():

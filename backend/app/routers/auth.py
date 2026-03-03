@@ -2,6 +2,11 @@ from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from passlib.context import CryptContext
 from app.db import get_db_connection, execute_one, execute_query
 from pydantic import BaseModel
+from app.utils.validation import (
+    validate_email, 
+    validate_password, 
+    validate_required_string
+)
 import shutil
 import uuid
 import logging
@@ -46,7 +51,26 @@ class ProjectRequest(BaseModel):
 
 @router.post("/register")
 async def register(request: RegisterRequest):
-    user = execute_one("SELECT id FROM usuarios WHERE email = %s", (request.email,))
+    """
+    Register a new user with validation.
+    
+    Args:
+        request: RegisterRequest with nombre, apellidos, email, password
+        
+    Returns:
+        User registration confirmation with user_id
+        
+    Raises:
+        HTTPException: 400 if email already exists, 422 if validation fails
+    """
+    # Validate inputs
+    nombre = validate_required_string(request.nombre, "Nombre", min_length=2, max_length=100)
+    apellidos = validate_required_string(request.apellidos, "Apellidos", min_length=2, max_length=100)
+    email = validate_email(request.email)
+    password = validate_password(request.password, min_length=6)
+    
+    # Check if user already exists
+    user = execute_one("SELECT id FROM usuarios WHERE email = %s", (email,))
     if user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -54,14 +78,14 @@ async def register(request: RegisterRequest):
         )
     
     user_id = str(uuid.uuid4())
-    hashed_password = hash_password(request.password)
+    hashed_password = hash_password(password)
     
     with get_db_connection() as conn:
         with conn.cursor() as cur:
             # Create user
             cur.execute(
                 "INSERT INTO usuarios (id, nombre, apellidos, email, password_hash) VALUES (%s, %s, %s, %s, %s)",
-                (user_id, request.nombre, request.apellidos, request.email, hashed_password)
+                (user_id, nombre, apellidos, email, hashed_password)
             )
             # Create profile
             cur.execute(
@@ -72,13 +96,29 @@ async def register(request: RegisterRequest):
     return {
         "message": "Usuario registrado exitosamente",
         "user_id": user_id,
-        "email": request.email,
-        "nombre": request.nombre
+        "email": email,
+        "nombre": nombre
     }
 
 @router.post("/login")
 async def login(request: LoginRequest):
-    user = execute_one("SELECT id, email, password_hash, nombre, apellidos FROM usuarios WHERE email = %s", (request.email,))
+    """
+    Authenticate user with email and password.
+    
+    Args:
+        request: LoginRequest with email and password
+        
+    Returns:
+        User information if authentication successful
+        
+    Raises:
+        HTTPException: 401 if credentials are invalid, 422 if validation fails
+    """
+    # Validate inputs
+    email = validate_email(request.email)
+    password = validate_required_string(request.password, "Contraseña")
+    
+    user = execute_one("SELECT id, email, password_hash, nombre, apellidos FROM usuarios WHERE email = %s", (email,))
     
     if not user:
         raise HTTPException(
@@ -86,7 +126,7 @@ async def login(request: LoginRequest):
             detail="Email o contraseña incorrectos"
         )
     
-    if not verify_password(request.password, user[2]): # password_hash is index 2
+    if not verify_password(password, user[2]): # password_hash is index 2
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Email o contraseña incorrectos"
