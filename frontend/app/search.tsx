@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { EventsService } from '@/services/eventsService';
+import { ensureArray } from '@/utils/errorHandler';
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -33,7 +34,7 @@ export default function SearchScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  const filteredEvents = events.filter((event) => {
+  const filteredEvents = ensureArray(events).filter((event) => {
     if (!searchQuery.trim()) return true;
     const query = searchQuery.toLowerCase().trim();
     const titulo = (event.titulo || '').toLowerCase();

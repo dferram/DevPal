@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from typing import Annotated
 from app.db import execute_query, execute_one, get_db_connection
 from app.services.ia_service import IAService, get_ia_service
+from app.utils.validation import validate_uuid, validate_positive_integer
 from datetime import datetime
 import uuid
 
@@ -24,6 +25,21 @@ async def listar_eventos(
     limite: int = 50,
     skip: int = 0
 ):
+    """
+    Lista eventos futuros, opcionalmente filtrados por categoría.
+    
+    Args:
+        categoria: Filtro de categoría (opcional)
+        limite: Máximo de eventos a retornar (1-200)
+        skip: Número de eventos a saltar para paginación
+        
+    Returns:
+        Lista de eventos
+    """
+    # Validar parámetros
+    limite = validate_positive_integer(limite, "Límite", min_value=1, max_value=200)
+    skip = validate_positive_integer(skip, "Skip", min_value=0, max_value=10000)
+    
     query = "SELECT " + ", ".join(EVENT_COLUMNS) + " FROM eventos WHERE fecha >= %s"
     params = [datetime.now().date()]
     
@@ -39,6 +55,17 @@ async def listar_eventos(
 
 @router.get("/guardados")
 async def listar_eventos_guardados(usuario_id: str):
+    """
+    Lista eventos guardados por un usuario.
+    
+    Args:
+        usuario_id: ID del usuario
+        
+    Returns:
+        Lista de eventos guardados
+    """
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     query = """
         SELECT e.* FROM eventos e 
         JOIN eventos_guardados eg ON e.id = eg.evento_id 
@@ -51,6 +78,20 @@ async def listar_eventos_guardados(usuario_id: str):
 
 @router.get("/{evento_id}")
 async def obtener_detalle_evento(evento_id: str):
+    """
+    Obtiene los detalles de un evento específico.
+    
+    Args:
+        evento_id: ID del evento
+        
+    Returns:
+        Detalles del evento
+        
+    Raises:
+        HTTPException: 404 si el evento no existe, 422 si el ID es inválido
+    """
+    evento_id = validate_uuid(evento_id, "ID de evento")
+    
     row = execute_one("SELECT " + ", ".join(EVENT_COLUMNS) + " FROM eventos WHERE id = %s", (evento_id,))
     if not row:
         raise HTTPException(status_code=404, detail="Evento no encontrado")
@@ -73,6 +114,22 @@ async def generar_eventos(
 
 @router.post("/{evento_id}/guardar")
 async def guardar_evento(evento_id: str, usuario_id: str):
+    """
+    Guarda un evento en los favoritos del usuario.
+    
+    Args:
+        evento_id: ID del evento a guardar
+        usuario_id: ID del usuario
+        
+    Returns:
+        Mensaje de confirmación
+        
+    Raises:
+        HTTPException: 400 si ya está guardado, 422 si los IDs son inválidos
+    """
+    evento_id = validate_uuid(evento_id, "ID de evento")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     ya_guardado = execute_one("SELECT id FROM eventos_guardados WHERE usuario_id = %s AND evento_id = %s", (usuario_id, evento_id))
     if ya_guardado:
         raise HTTPException(status_code=400, detail="Evento ya está guardado")
@@ -85,6 +142,22 @@ async def guardar_evento(evento_id: str, usuario_id: str):
 
 @router.delete("/{evento_id}/guardar")
 async def eliminar_evento_guardado(evento_id: str, usuario_id: str):
+    """
+    Elimina un evento de los favoritos del usuario.
+    
+    Args:
+        evento_id: ID del evento
+        usuario_id: ID del usuario
+        
+    Returns:
+        Mensaje de confirmación
+        
+    Raises:
+        HTTPException: 404 si no está en favoritos, 422 si los IDs son inválidos
+    """
+    evento_id = validate_uuid(evento_id, "ID de evento")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     ya_guardado = execute_one("SELECT id FROM eventos_guardados WHERE usuario_id = %s AND evento_id = %s", (usuario_id, evento_id))
     if not ya_guardado:
         raise HTTPException(status_code=404, detail="Evento no encontrado en favoritos")
@@ -94,6 +167,22 @@ async def eliminar_evento_guardado(evento_id: str, usuario_id: str):
 
 @router.post("/{evento_id}/registrar")
 async def registrar_asistencia(evento_id: str, usuario_id: str):
+    """
+    Registra la asistencia del usuario a un evento.
+    
+    Args:
+        evento_id: ID del evento
+        usuario_id: ID del usuario
+        
+    Returns:
+        Mensaje de confirmación
+        
+    Raises:
+        HTTPException: 400 si ya está registrado, 422 si los IDs son inválidos
+    """
+    evento_id = validate_uuid(evento_id, "ID de evento")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     ya_registrado = execute_one("SELECT id FROM usuario_eventos WHERE usuario_id = %s AND evento_id = %s", (usuario_id, evento_id))
     if ya_registrado:
         raise HTTPException(status_code=400, detail="Ya estás registrado en este evento")

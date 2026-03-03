@@ -1,4 +1,5 @@
 import api from './api';
+import { handleApiError, ensureArray } from '../utils/errorHandler';
 
 export interface LeaderboardEntry {
     ranking: number;
@@ -40,10 +41,10 @@ export const GamificationService = {
             if (lenguaje) params.lenguaje = lenguaje;
 
             const response = await api.get('/gamification/leaderboard', { params });
-            return response.data.leaderboard;
+            return ensureArray(response.data.leaderboard);
         } catch (error) {
             console.error('Error fetching leaderboard:', error);
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -53,7 +54,7 @@ export const GamificationService = {
             return response.data.ranking;
         } catch (error) {
             console.error('Error fetching user ranking:', error);
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -61,22 +62,22 @@ export const GamificationService = {
         try {
             const response = await api.get(`/gamification/badges/${userId}`);
             return {
-                desbloqueados: response.data.desbloqueados,
-                proximos: response.data.proximos
+                desbloqueados: ensureArray(response.data.desbloqueados),
+                proximos: ensureArray(response.data.proximos)
             };
         } catch (error) {
             console.error('Error fetching badges:', error);
-            throw error;
+            throw handleApiError(error);
         }
     },
 
     verificarBadges: async (userId: string): Promise<Badge[]> => {
         try {
             const response = await api.post(`/gamification/badges/verificar/${userId}`);
-            return response.data.nuevos_badges;
+            return ensureArray(response.data.nuevos_badges);
         } catch (error) {
             console.error('Error verifying badges:', error);
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -86,7 +87,7 @@ export const GamificationService = {
             return response.data.stats;
         } catch (error) {
             console.error('Error fetching global stats:', error);
-            throw error;
+            throw handleApiError(error);
         }
     }
 };

@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
 import { BlurView } from 'expo-blur';
 import { AuthService } from '@/services/authService';
+import { ensureArray } from '@/utils/errorHandler';
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -30,9 +31,10 @@ export default function NotificationsScreen() {
   const loadNotifications = async () => {
     try {
       const data = await AuthService.getNotifications();
-      setNotifications(data);
+      setNotifications(ensureArray(data));
     } catch (error) {
       console.error("Error loading notifications", error);
+      setNotifications([]);
     } finally {
       setLoading(false);
     }

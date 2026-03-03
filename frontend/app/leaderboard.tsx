@@ -18,6 +18,7 @@ import { LeaderboardCard } from '@/components/LeaderboardCard';
 import { BadgeCard } from '@/components/BadgeCard';
 import { TabbedLayout } from '@/components/TabbedLayout';
 import { COLORS, RADIUS, SPACING, TYPOGRAPHY, SHADOWS } from '@/constants/designTokens';
+import { ensureArray } from '@/utils/errorHandler';
 
 export default function LeaderboardScreen() {
     const router = useRouter();
@@ -47,9 +48,10 @@ export default function LeaderboardScreen() {
         try {
             setLoading(true);
             const data = await GamificationService.getLeaderboard(100, 0);
-            setLeaderboard(data);
+            setLeaderboard(ensureArray(data));
         } catch (error) {
             console.error('Error loading leaderboard:', error);
+            setLeaderboard([]);
             Alert.alert('Error', 'No se pudo cargar el leaderboard');
         } finally {
             setLoading(false);
@@ -68,10 +70,12 @@ export default function LeaderboardScreen() {
     const loadBadges = async (userId: string) => {
         try {
             const badges = await GamificationService.getUserBadges(userId);
-            setBadgesDesbloqueados(badges.desbloqueados);
-            setBadgesProximos(badges.proximos);
+            setBadgesDesbloqueados(ensureArray(badges.desbloqueados));
+            setBadgesProximos(ensureArray(badges.proximos));
         } catch (error) {
             console.error('Error loading badges:', error);
+            setBadgesDesbloqueados([]);
+            setBadgesProximos([]);
             Alert.alert('Error', 'No se pudieron cargar los badges');
         }
     };

@@ -2,6 +2,7 @@ import api from './api';
 import { ENDPOINTS } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthStorage } from '@/utils/AuthStorage';
+import { handleApiError, ensureArray } from '../utils/errorHandler';
 
 export const AuthService = {
     login: async (email: string, password: string, rememberMe: boolean = true) => {
@@ -18,7 +19,7 @@ export const AuthService = {
 
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -41,7 +42,7 @@ export const AuthService = {
 
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -60,7 +61,7 @@ export const AuthService = {
 
             return data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -78,7 +79,7 @@ export const AuthService = {
             const response = await api.post(`${ENDPOINTS.AUTH.ME(userId)}/projects`, projectData);
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -103,7 +104,7 @@ export const AuthService = {
 
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -118,7 +119,7 @@ export const AuthService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -142,7 +143,7 @@ export const AuthService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -152,9 +153,9 @@ export const AuthService = {
             if (!userId) throw new Error('No user ID found');
 
             const response = await api.get(`${ENDPOINTS.AUTH.ME(userId)}/notifications`);
-            return response.data;
+            return ensureArray(response.data);
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     }
 };

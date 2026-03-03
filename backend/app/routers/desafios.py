@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.db import execute_query, execute_one
 from app.services.ia_service import IAService, get_ia_service
 from app.services.code_executor import ejecutar_codigo
+from app.utils.validation import validate_uuid, validate_positive_integer, validate_choice
 
 router = APIRouter()
 
@@ -75,7 +76,20 @@ def serialize_desafio_con_progreso(desafio, progreso=None) -> dict:
 
 @router.get("/hoy")
 async def obtener_desafio_del_dia(usuario_id: str):
-    """Obtiene el desafío del día para el usuario."""
+    """
+    Obtiene el desafío del día para el usuario.
+    
+    Args:
+        usuario_id: ID del usuario
+        
+    Returns:
+        Desafío del día con progreso del usuario
+        
+    Raises:
+        HTTPException: 404 si no hay desafío para hoy, 422 si el ID es inválido
+    """
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     hoy = datetime.now().date()
     # Buscar el desafío global del día
     desafio_row = execute_one(
@@ -158,7 +172,25 @@ async def obtener_historial(
     limite: int = 20,
     skip: int = 0
 ):
-    """Obtiene el historial de desafíos del usuario."""
+    """
+    Obtiene el historial de desafíos del usuario.
+    
+    Args:
+        usuario_id: ID del usuario
+        estado: Filtrar por estado (opcional: pendiente, completado, abandonado)
+        limite: Máximo de resultados (1-100)
+        skip: Número de resultados a saltar
+        
+    Returns:
+        Lista de desafíos con progreso
+    """
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    limite = validate_positive_integer(limite, "Límite", min_value=1, max_value=100)
+    skip = validate_positive_integer(skip, "Skip", min_value=0, max_value=10000)
+    
+    if estado:
+        estado = validate_choice(estado, ["pendiente", "completado", "abandonado"], "Estado")
+    
     query = """
         SELECT p.*, d.* FROM progreso_desafio_diario p
         JOIN desafios_diarios d ON p.desafio_id = d.id
@@ -201,7 +233,22 @@ async def obtener_historial(
 
 @router.post("/{desafio_id}/completar")
 async def marcar_completado(desafio_id: str, usuario_id: str):
-    """Marca un desafío como completado."""
+    """
+    Marca un desafío como completado.
+    
+    Args:
+        desafio_id: ID del desafío
+        usuario_id: ID del usuario
+        
+    Returns:
+        Mensaje de confirmación
+        
+    Raises:
+        HTTPException: Si el ID no es válido
+    """
+    desafio_id = validate_uuid(desafio_id, "ID del desafío")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     execute_query(
         "UPDATE progreso_desafio_diario SET estado = %s, "
         "completado_at = %s WHERE desafio_id = %s AND usuario_id = %s",
@@ -212,7 +259,22 @@ async def marcar_completado(desafio_id: str, usuario_id: str):
 
 @router.post("/{desafio_id}/abandonar")
 async def marcar_abandonado(desafio_id: str, usuario_id: str):
-    """Marca un desafío como abandonado."""
+    """
+    Marca un desafío como abandonado.
+    
+    Args:
+        desafio_id: ID del desafío
+        usuario_id: ID del usuario
+        
+    Returns:
+        Mensaje de confirmación
+        
+    Raises:
+        HTTPException: Si el ID no es válido
+    """
+    desafio_id = validate_uuid(desafio_id, "ID del desafío")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
     execute_query(
         "UPDATE progreso_desafio_diario SET estado = %s "
         "WHERE desafio_id = %s AND usuario_id = %s",
@@ -233,7 +295,37 @@ async def ejecutar_codigo_desafio(
     usuario_id: str,
     request: EjecutarCodigoRequest
 ):
-    """Ejecuta el código del usuario contra los casos de prueba."""
+    """
+    Ejecuta el código del usuario contra los casos de prueba.
+    
+    Args:
+        desafio_id: ID del desafío
+        usuario_id: ID del usuario
+        request: Código y lenguaje a ejecutar
+        
+    Returns:
+        Resultados de la ejecución con status y detalles
+        
+    Raises:
+        HTTPException: Si el desafío no existe, no tiene casos de prueba, o los IDs no son válidos
+    """
+    desafio_id = validate_uuid(desafio_id, "ID del desafío")
+    usuario_id = validate_uuid(usuario_id, "ID de usuario")
+    
+    # Validate code length (max 100KB)
+    if len(request.codigo) > 100 * 1024:
+        raise HTTPException(
+            status_code=400,
+            detail="El código es demasiado largo. Máximo: 100KB"
+        )
+    
+    # Validate language
+    validate_choice(
+        request.lenguaje,
+        ["python", "javascript", "java", "csharp", "typescript"],
+        "Lenguaje"
+    )
+    
     desafio_row = execute_one(
         "SELECT casos_prueba_json FROM desafios_diarios WHERE id = %s",
         (desafio_id,)

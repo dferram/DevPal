@@ -1,8 +1,9 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
+from starlette.middleware.base import BaseHTTPMiddleware
 from app.config import get_settings
 from app.middleware.simple_rate_limiter import CustomRateLimitMiddleware
 from app.utils.exception_handlers import (
@@ -15,6 +16,22 @@ import os
 
 settings = get_settings()
 logger = logging.getLogger(__name__)
+
+# Request size limit (10MB)
+max_request_size = 10 * 1024 * 1024
+
+class RequestSizeLimitMiddleware(BaseHTTPMiddleware):
+    """Middleware to limit request body size."""
+    async def dispatch(self, request: Request, call_next):
+        if request.method in ['POST', 'PUT', 'PATCH']:
+            content_length = request.headers.get('content-length')
+            if content_length and int(content_length) > max_request_size:
+                from fastapi import HTTPException, status
+                raise HTTPException(
+                    status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                    detail=f"Request body demasiado grande. Máximo: {max_request_size // (1024*1024)}MB"
+                )
+        return await call_next(request)
 
 app = FastAPI(
     title="DevPal API",
@@ -32,6 +49,8 @@ if not os.path.exists("static/uploads"):
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Add middlewares
+app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(CustomRateLimitMiddleware)
 
 origins = settings.cors_origins_list
