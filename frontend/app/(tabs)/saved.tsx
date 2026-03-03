@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { EventsService } from '@/services/eventsService';
 import { BlurView } from "expo-blur";
 import { ActiveHeader } from "@/app/components/ActiveHeader";
+import { ensureArray } from '@/utils/errorHandler';
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -99,7 +100,7 @@ export default function SavedScreen() {
             </Text>
           </View>
         ) : (
-          events.map((event) => {
+          ensureArray(events).map((event) => {
             const isExpanded = expandedEvent === event.id;
             return (
               <View key={event.id} style={styles.eventCard}>

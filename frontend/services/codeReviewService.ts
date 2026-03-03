@@ -1,6 +1,7 @@
 import api from './api';
 import { ENDPOINTS } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { handleApiError, ensureArray } from '../utils/errorHandler';
 
 export const CodeReviewService = {
     submitReview: async (code: string, language: string) => {
@@ -15,7 +16,7 @@ export const CodeReviewService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -28,9 +29,9 @@ export const CodeReviewService = {
             if (language) params.lenguaje = language;
 
             const response = await api.get(ENDPOINTS.CODE_REVIEW.HISTORY, { params });
-            return response.data;
+            return ensureArray(response.data);
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -42,7 +43,7 @@ export const CodeReviewService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     }
 };

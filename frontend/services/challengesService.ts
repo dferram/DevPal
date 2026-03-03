@@ -1,6 +1,7 @@
 import api from './api';
 import { ENDPOINTS } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { handleApiError, ensureArray } from '../utils/errorHandler';
 
 export const ChallengesService = {
     getToday: async () => {
@@ -13,7 +14,7 @@ export const ChallengesService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -27,7 +28,7 @@ export const ChallengesService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -40,9 +41,9 @@ export const ChallengesService = {
             if (state) params.estado = state;
 
             const response = await api.get(ENDPOINTS.DESAFIOS.HISTORY, { params });
-            return response.data;
+            return ensureArray(response.data);
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -56,7 +57,7 @@ export const ChallengesService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -70,7 +71,7 @@ export const ChallengesService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -85,7 +86,8 @@ export const ChallengesService = {
             );
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     }
 };
+

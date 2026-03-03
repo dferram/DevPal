@@ -1,6 +1,10 @@
-# DevPal 🤖💻
+# DevPal - Plataforma de Desarrollo Profesional
 
-**Tu compañero de desarrollo impulsado por IA** — Una aplicación móvil que conecta desarrolladores con eventos tech, desafíos de código diarios y revisiones de código inteligentes.
+<div align="center">
+
+**Conecta, aprende y crece como desarrollador**
+
+**Tu compañero de desarrollo impulsado por IA**
 
 ![React Native](https://img.shields.io/badge/React_Native-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)
 ![Expo](https://img.shields.io/badge/Expo-000020?style=for-the-badge&logo=expo&logoColor=white)
