@@ -1,6 +1,7 @@
 import api from './api';
 import { ENDPOINTS } from '../constants/Config';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { handleApiError, ensureArray } from '../utils/errorHandler';
 
 export const EventsService = {
     getAll: async (category: string | null = null, limit: number = 50, skip: number = 0) => {
@@ -9,9 +10,9 @@ export const EventsService = {
             if (category) params.categoria = category;
 
             const response = await api.get(ENDPOINTS.EVENTOS.LIST, { params });
-            return response.data;
+            return ensureArray(response.data);
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -20,7 +21,7 @@ export const EventsService = {
             const response = await api.get(ENDPOINTS.EVENTOS.DETAIL(id));
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -32,9 +33,9 @@ export const EventsService = {
             const response = await api.get(ENDPOINTS.EVENTOS.SAVED, {
                 params: { usuario_id: userId }
             });
-            return response.data;
+            return ensureArray(response.data);
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -45,7 +46,7 @@ export const EventsService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -59,7 +60,7 @@ export const EventsService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -73,7 +74,7 @@ export const EventsService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     },
 
@@ -87,7 +88,8 @@ export const EventsService = {
             });
             return response.data;
         } catch (error) {
-            throw error;
+            throw handleApiError(error);
         }
     }
 };
+

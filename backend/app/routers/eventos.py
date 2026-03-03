@@ -114,7 +114,7 @@ async def fix_event_images():
     
     with get_db_connection() as conn:
         with conn.cursor() as cur:
-            for ev_id, titulo, categoria, img_url in eventos:
+            for ev_id, _, categoria, img_url in eventos:
                 bad_url = (
                     not img_url or 
                     not img_url.startswith("http") or 

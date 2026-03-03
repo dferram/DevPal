@@ -1,14 +1,10 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request, UploadFile, File
-from typing import Annotated
+from fastapi import APIRouter, HTTPException, status, UploadFile, File
 from passlib.context import CryptContext
 from app.db import get_db_connection, execute_one, execute_query
-from app.middleware.rate_limiter import auth_rate_limit
 from pydantic import BaseModel
 import shutil
-import os
 import uuid
 import logging
-from datetime import datetime
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -118,7 +114,7 @@ async def get_user_profile(user_id: str):
     
     # XP Calculation Logic
     xp_actual = 0
-    xp_next_level = 1000
+    nivel_calculado = 1
     
     if perfil:
         nivel = perfil[0]
