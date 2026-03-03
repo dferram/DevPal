@@ -48,24 +48,26 @@ def serialize_desafio_con_progreso(desafio, progreso=None) -> dict:
     return resultado
 
 @router.get("/hoy")
-async def obtener_desafio_del_dia(
-    usuario_id: str,
-    ia_service: Annotated[IAService, Depends(get_ia_service)]
-):
+async def obtener_desafio_del_dia(usuario_id: str):
     hoy = datetime.now().date()
     # Buscar el desafío global del día
     desafio_row = execute_one("SELECT * FROM desafios_diarios WHERE fecha = %s", (hoy,))
     
     if not desafio_row:
-        desafio_dict = await ia_service.generar_desafio_global()
-        if not desafio_dict:
-            raise HTTPException(status_code=500, detail="No se pudo generar el desafío del día")
-        desafio_id = desafio_dict["id"]
-    else:
-        cols = ["id", "fecha", "titulo", "lenguaje_recomendado", "contexto_negocio", "definicion_problema", 
-                "templates_lenguajes_json", "restricciones_json", "casos_prueba_json", "pista", "dificultad", "xp_recompensa", "created_at"]
-        desafio_dict = dict(zip(cols, desafio_row))
-        desafio_id = desafio_dict["id"]
+        # No generar automáticamente - funcionalidad de IA bloqueada
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={
+                "message": "No hay desafío disponible para hoy",
+                "hint": "Los desafíos se generan manualmente. Funcionalidad de IA próximamente.",
+                "status": "not_found"
+            }
+        )
+    
+    cols = ["id", "fecha", "titulo", "lenguaje_recomendado", "contexto_negocio", "definicion_problema", 
+            "templates_lenguajes_json", "restricciones_json", "casos_prueba_json", "pista", "dificultad", "xp_recompensa", "created_at"]
+    desafio_dict = dict(zip(cols, desafio_row))
+    desafio_id = desafio_dict["id"]
     
     # Buscar o crear progreso
     prog_cols = ["id", "usuario_id", "desafio_id", "estado", "completado_at", "codigo_enviado", "lenguaje_usado", "created_at", "updated_at"]
@@ -84,16 +86,15 @@ async def obtener_desafio_del_dia(
 
 @router.post("/generar")
 async def generar_nuevo_desafio(ia_service: Annotated[IAService, Depends(get_ia_service)]):
-    hoy = datetime.now().date()
-    desafio_existente = execute_one("SELECT id FROM desafios_diarios WHERE fecha = %s", (hoy,))
-    if desafio_existente:
-        return {"status": "exists", "message": "Ya existe un desafío para hoy"}
-    
-    desafio = await ia_service.generar_desafio_global()
-    if not desafio:
-        raise HTTPException(status_code=500, detail="Error al generar el desafío")
-    
-    return {"status": "success", "desafio": serialize_desafio_con_progreso(desafio), "message": "Desafío generado exitosamente"}
+    # Funcionalidad bloqueada temporalmente
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "message": "Funcionalidad próximamente disponible",
+            "feature": "Generación de desafíos con IA",
+            "status": "coming_soon"
+        }
+    )
 
 @router.get("/historial")
 async def obtener_historial(usuario_id: str, estado: str | None = None, limite: int = 20, skip: int = 0):

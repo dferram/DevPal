@@ -32,14 +32,12 @@ async def generar_noticias(
     ia_service: Annotated[IAService, Depends(get_ia_service)],
     limite: int = 50,
 ):
-    try:
-        nuevas, duplicadas = await ia_service.generar_y_guardar_noticias(usuario_id=None, limite=limite)
-        return {
-            "status": "success",
-            "noticias_nuevas": nuevas,
-            "noticias_duplicadas": duplicadas,
-            "total_generado": nuevas + duplicadas,
-            "message": f"Se agregaron {nuevas} noticias nuevas"
+    # Funcionalidad bloqueada temporalmente
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "message": "Funcionalidad próximamente disponible",
+            "feature": "Generación de noticias con IA",
+            "status": "coming_soon"
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar noticias: {str(e)}")
+    )

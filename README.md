@@ -9,6 +9,26 @@
 
 ---
 
+## 🚀 Configuración Local Rápida
+
+```powershell
+# 1. Clonar el repositorio
+git clone https://github.com/dferram/DevPal.git
+cd DevPal
+
+# 2. Ejecutar script de configuración automática (Windows)
+.\setup.ps1
+
+# 3. Ver documentación completa
+# Abre SETUP_LOCAL.md para instrucciones detalladas
+```
+
+**📚 [Guía Completa de Configuración Local](SETUP_LOCAL.md)**
+
+**Nota:** Las funcionalidades de IA están temporalmente **bloqueadas** para desarrollo local. La aplicación funciona completamente sin ellas.
+
+---
+
 ## Inspiration
 
 La comunidad de desarrolladores a menudo se siente fragmentada. Encontrar eventos tech relevantes, mantenerse motivado para practicar código, y obtener feedback constructivo sobre tu código puede ser abrumador. Nos inspiramos en la idea de crear un **compañero digital** que centralice estas necesidades en una sola experiencia gamificada.

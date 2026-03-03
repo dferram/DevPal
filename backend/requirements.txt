@@ -9,6 +9,7 @@ google-genai==1.0.0
 apscheduler==3.10.4
 python-dotenv==1.0.0
 slowapi==0.1.9
-RestrictedPython==7.0
+RestrictedPython==8.1
 starlette==0.38.2
 python-multipart==0.0.9
+sqlalchemy==2.0.36

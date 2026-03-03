@@ -38,24 +38,15 @@ async def solicitar_code_review(
     request: CodeReviewRequest,
     ia_service: Annotated[IAService, Depends(get_ia_service)]
 ):
-    try:
-        user_row = execute_one("SELECT nombre FROM usuarios WHERE id = %s", (request.usuario_id,))
-        informacion_usuario = {"nombre": user_row[0] if user_row else "Usuario"}
-        
-        review = await ia_service.realizar_code_review(
-            usuario_id=request.usuario_id,
-            codigo=request.codigo,
-            lenguaje=request.lenguaje,
-            informacion_usuario=informacion_usuario
-        )
-        
-        if not review:
-            raise HTTPException(status_code=500, detail="Error al generar la revisión")
-        
-        # If review is already a dict from ia_service (which it is in my refactored version), return it
-        return {"status": "success", "review": review}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    # Funcionalidad bloqueada temporalmente
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "message": "Funcionalidad próximamente disponible",
+            "feature": "Code Review con IA",
+            "status": "coming_soon"
+        }
+    )
 
 @router.get("/historial")
 async def obtener_historial_reviews(usuario_id: str, lenguaje: str | None = None, limite: int = 20, skip: int = 0):
@@ -75,14 +66,12 @@ async def generar_pista(
     request: PistaRequest,
     ia_service: Annotated[IAService, Depends(get_ia_service)]
 ):
-    try:
-        pista = await ia_service.generar_pista_codigo(
-            codigo=request.codigo,
-            lenguaje=request.lenguaje,
-            informacion_usuario={"nombre": "Usuario"}
-        )
-        if not pista:
-            raise HTTPException(status_code=500, detail="Error al generar la pista")
-        return {"status": "success", "pista": pista}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+    # Funcionalidad bloqueada temporalmente
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "message": "Funcionalidad próximamente disponible",
+            "feature": "Generación de pistas con IA",
+            "status": "coming_soon"
+        }
+    )

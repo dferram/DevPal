@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings
 from functools import lru_cache
 from typing import List
-import os
 
 
 class Settings(BaseSettings):
@@ -48,9 +47,12 @@ class Settings(BaseSettings):
     
     @property
     def database_url(self) -> str:
-        """URL de conexión a PostgreSQL con SSL."""
+        """URL de conexión a PostgreSQL. SSL solo para Azure."""
         from urllib.parse import quote_plus
-        return f"postgresql://{quote_plus(self.DB_USER)}:{quote_plus(self.DB_PASSWORD)}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?sslmode=require"
+        # Detectar si es Azure o base de datos local
+        is_azure = "azure" in self.DB_HOST.lower() or "postgres.database" in self.DB_HOST.lower()
+        sslmode = "require" if is_azure else "prefer"
+        return f"postgresql://{quote_plus(self.DB_USER)}:{quote_plus(self.DB_PASSWORD)}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}?sslmode={sslmode}"
     
     @property
     def cors_origins_list(self) -> List[str]:

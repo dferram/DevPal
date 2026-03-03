@@ -61,17 +61,15 @@ async def generar_eventos(
     ia_service: Annotated[IAService, Depends(get_ia_service)],
     limite: int = 15
 ):
-    try:
-        nuevos, duplicados = await ia_service.generar_y_guardar_eventos(limite=limite)
-        return {
-            "status": "success",
-            "eventos_nuevos": nuevos,
-            "eventos_duplicados": duplicados,
-            "total_generado": nuevos + duplicados,
-            "message": f"Se agregaron {nuevos} eventos nuevos"
+    # Funcionalidad bloqueada temporalmente
+    raise HTTPException(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        detail={
+            "message": "Funcionalidad próximamente disponible",
+            "feature": "Generación de eventos con IA",
+            "status": "coming_soon"
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al generar eventos: {str(e)}")
+    )
 
 @router.post("/{evento_id}/guardar")
 async def guardar_evento(evento_id: str, usuario_id: str):
