@@ -5,6 +5,11 @@
     "@types/react": "~19.2.10"
   },
   "dependencies": {
-    "expo": "^55.0.4"
-  }
+    "expo": "^55.0.4",
+    "react": "19.2.0",
+    "react-native": "0.83.2"
+  },
+  "name": "DevPal",
+  "version": "1.0.0",
+  "scripts": {}
 }

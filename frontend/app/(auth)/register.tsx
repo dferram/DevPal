@@ -97,14 +97,16 @@ export default function RegisterScreen() {
     } catch (err: any) {
       console.error('Register error:', err);
 
-      if (err.response?.status === 400) {
-        setError('El email ya esta registrado');
-      } else if (err.response?.status === 500) {
+      if (err.statusCode === 400) {
+        setError(err.message || 'El email ya esta registrado');
+      } else if (err.statusCode === 422) {
+        setError(err.message || 'Datos inválidos. Revisa los campos.');
+      } else if (err.statusCode >= 500) {
         setError('Error del servidor. Intenta mas tarde.');
-      } else if (err.message?.includes('Network Error')) {
+      } else if (err.code === 'NETWORK_ERROR' || err.message?.includes('Network Error') || err.message?.includes('conexión')) {
         setError('No se pudo conectar al servidor. Verifica tu conexion.');
       } else {
-        setError('Error al registrarse. Intenta de nuevo.');
+        setError(err.message || 'Error al registrarse. Intenta de nuevo.');
       }
     } finally {
       setLoading(false);
