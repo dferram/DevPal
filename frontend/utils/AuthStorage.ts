@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Platform } from 'react-native';
 
 const KEYS = {
     USER_ID: 'user_id',
@@ -9,15 +10,47 @@ const KEYS = {
     ASYNC_USER_ID: 'userId',
 };
 
+/**
+ * Check if SecureStore is available (not available on web).
+ */
+const isSecureStoreAvailable = Platform.OS !== 'web';
+
+/**
+ * Safe wrapper for SecureStore that falls back to AsyncStorage on web.
+ */
+const SecureStorage = {
+    setItem: async (key: string, value: string) => {
+        if (isSecureStoreAvailable) {
+            await SecureStore.setItemAsync(key, value);
+        } else {
+            await AsyncStorage.setItem(`secure_${key}`, value);
+        }
+    },
+    getItem: async (key: string): Promise<string | null> => {
+        if (isSecureStoreAvailable) {
+            return await SecureStore.getItemAsync(key);
+        } else {
+            return await AsyncStorage.getItem(`secure_${key}`);
+        }
+    },
+    deleteItem: async (key: string) => {
+        if (isSecureStoreAvailable) {
+            await SecureStore.deleteItemAsync(key);
+        } else {
+            await AsyncStorage.removeItem(`secure_${key}`);
+        }
+    },
+};
+
 export const AuthStorage = {
     saveSession: async (userData: any, rememberMe: boolean = true) => {
         try {
-            await SecureStore.setItemAsync(KEYS.USER_ID, userData.user_id);
+            await SecureStorage.setItem(KEYS.USER_ID, userData.user_id);
 
             await AsyncStorage.setItem(KEYS.ASYNC_USER_ID, userData.user_id);
 
             if (rememberMe && userData.email) {
-                await SecureStore.setItemAsync(KEYS.USER_EMAIL, userData.email);
+                await SecureStorage.setItem(KEYS.USER_EMAIL, userData.email);
             }
 
             await AsyncStorage.setItem(KEYS.USER_INFO, JSON.stringify(userData));
@@ -33,7 +66,7 @@ export const AuthStorage = {
 
     getUserId: async (): Promise<string | null> => {
         try {
-            return await SecureStore.getItemAsync(KEYS.USER_ID);
+            return await SecureStorage.getItem(KEYS.USER_ID);
         } catch (error) {
             console.error('Error getting userId:', error);
             return null;
@@ -42,7 +75,7 @@ export const AuthStorage = {
 
     getUserEmail: async (): Promise<string | null> => {
         try {
-            return await SecureStore.getItemAsync(KEYS.USER_EMAIL);
+            return await SecureStorage.getItem(KEYS.USER_EMAIL);
         } catch (error) {
             console.error('Error getting email:', error);
             return null;
@@ -79,8 +112,8 @@ export const AuthStorage = {
 
     clearSession: async () => {
         try {
-            await SecureStore.deleteItemAsync(KEYS.USER_ID);
-            await SecureStore.deleteItemAsync(KEYS.USER_EMAIL);
+            await SecureStorage.deleteItem(KEYS.USER_ID);
+            await SecureStorage.deleteItem(KEYS.USER_EMAIL);
 
             await AsyncStorage.removeItem(KEYS.USER_INFO);
             await AsyncStorage.removeItem(KEYS.REMEMBER_ME);
