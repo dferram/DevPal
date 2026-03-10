@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, forwardRef, useImperativeHandle } from 'react';
 import { View, StyleSheet, ActivityIndicator, Platform } from 'react-native';
 import { WebView } from 'react-native-webview';
 
@@ -24,9 +24,19 @@ interface MapViewProps {
   onMarkerPress?: (id: string) => void;
 }
 
-const MapView = ({ style, initialRegion, markers = [], onMarkerPress }: MapViewProps) => {
+const MapView = forwardRef<any, MapViewProps>(({ style, initialRegion, markers = [], onMarkerPress }, ref) => {
   const webViewRef = useRef<WebView>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+
+  useImperativeHandle(ref, () => ({
+    animateToRegion: (region: any, duration: number) => {
+      if (webViewRef.current) {
+        const zoomLevel = region.longitudeDelta ? Math.round(Math.log2(360 / region.longitudeDelta)) + 1 : 14;
+        const script = `map.flyTo([${region.latitude}, ${region.longitude}], ${zoomLevel});`;
+        webViewRef.current.injectJavaScript(script);
+      }
+    }
+  }));
 
   // Generate HTML for Leaflet Map
   const mapHtml = `
@@ -55,8 +65,8 @@ const MapView = ({ style, initialRegion, markers = [], onMarkerPress }: MapViewP
           attributionControl: false
         });
         
-        // Add dark theme tiles (CartoDB Dark Matter)
-        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        // Add lighter theme tiles (CartoDB Voyager)
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
           maxZoom: 19
         }).addTo(map);
 
@@ -161,7 +171,7 @@ const MapView = ({ style, initialRegion, markers = [], onMarkerPress }: MapViewP
       )}
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

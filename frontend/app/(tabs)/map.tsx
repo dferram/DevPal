@@ -143,6 +143,7 @@ export default function MapScreen() {
 
       <View style={styles.mapContainer}>
         <MapView
+          ref={mapRef}
           style={styles.map}
           initialRegion={DEFAULT_REGION}
           markers={mapMarkers}
