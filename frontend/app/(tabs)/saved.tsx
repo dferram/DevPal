@@ -7,6 +7,7 @@ import { EventsService } from '@/services/eventsService';
 import { BlurView } from "expo-blur";
 import { ActiveHeader } from "@/app/components/ActiveHeader";
 import { ensureArray } from '@/utils/errorHandler';
+import { useAuth } from "@/contexts/AuthContext";
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -21,6 +22,7 @@ export default function SavedScreen() {
   const router = useRouter();
   const [expandedEvent, setExpandedEvent] = useState<string | null>(null);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
+  const { signOut } = useAuth();
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
@@ -62,9 +64,9 @@ export default function SavedScreen() {
     setShowAccountMenu(false);
     router.push('/settings');
   };
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowAccountMenu(false);
-    router.replace('/(auth)/welcome');
+    await signOut();
   };
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, Image, Pressable, ScrollView, StyleSheet, ActivityIndicator, Linking, Alert } from 'react-native';
+import { View, Text, Image, Pressable, ScrollView, StyleSheet, ActivityIndicator, Linking, Alert, Share } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { Ionicons } from '@expo/vector-icons';
@@ -135,7 +135,15 @@ export default function EventScreen() {
   };
 
   const handleShare = async () => {
-    Alert.alert('Compartir', 'Funcionalidad de compartir próximamente.');
+    try {
+      const message = `¡Mira este evento en DevPal!\n\n${event.titulo}\n${event.fecha} - ${event.hora}\nUbicación: ${event.ubicacion || 'Por confirmar'}\n\n${event.descripcion ? event.descripcion.substring(0, 100) + '...' : ''}`;
+      await Share.share({
+        message,
+        title: event.titulo,
+      });
+    } catch (error: any) {
+      Alert.alert('Error', error.message);
+    }
   };
 
   if (loading) {

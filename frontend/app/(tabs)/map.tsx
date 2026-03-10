@@ -7,6 +7,7 @@ import MapView from "@/components/MapView";
 import { EventsService } from "@/services/eventsService";
 import { BlurView } from "expo-blur";
 import { ensureArray } from "@/utils/errorHandler";
+import { useAuth } from "@/contexts/AuthContext";
 
 const GLASS = {
   bg: 'rgba(30, 41, 59, 0.7)',
@@ -33,6 +34,7 @@ export default function MapScreen() {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [userAvatarUrl, setUserAvatarUrl] = useState<string | null>(null);
+  const { signOut } = useAuth();
 
   useEffect(() => {
     loadEvents();
@@ -91,9 +93,9 @@ export default function MapScreen() {
     setShowAccountMenu(false);
     router.push('/settings');
   };
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setShowAccountMenu(false);
-    router.replace('/(auth)/welcome');
+    await signOut();
   };
 
   const selectedEvent = ensureArray(events).find(e => e.id === selectedPin);
