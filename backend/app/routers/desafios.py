@@ -97,28 +97,26 @@ async def obtener_desafio_del_dia(usuario_id: str):
     )
 
     if not desafio_row:
-        # No generar automáticamente - funcionalidad de IA bloqueada
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail={
-                "message": "No hay desafío disponible para hoy",
-                "hint": (
-                    "Los desafíos se generan manualmente. "
-                    "Funcionalidad de IA próximamente."
-                ),
-                "status": "not_found"
-            }
-        )
-
-    cols = [
-        "id", "fecha", "titulo", "lenguaje_recomendado",
-        "contexto_negocio", "definicion_problema",
-        "templates_lenguajes_json", "restricciones_json",
-        "casos_prueba_json", "pista", "dificultad",
-        "xp_recompensa", "created_at"
-    ]
-    desafio_dict = dict(zip(cols, desafio_row))
-    desafio_id = desafio_dict["id"]
+        # Generar offline si no existe
+        ia_service = get_ia_service()
+        desafio_dict = await ia_service.generar_desafio_global()
+        if not desafio_dict:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error interno generando el desafío del día."
+            )
+        # desafio_dict ya tiene el id de la db
+        desafio_id = desafio_dict["id"]
+    else:
+        cols = [
+            "id", "fecha", "titulo", "lenguaje_recomendado",
+            "contexto_negocio", "definicion_problema",
+            "templates_lenguajes_json", "restricciones_json",
+            "casos_prueba_json", "pista", "dificultad",
+            "xp_recompensa", "created_at"
+        ]
+        desafio_dict = dict(zip(cols, desafio_row))
+        desafio_id = desafio_dict["id"]
 
     # Buscar o crear progreso
     prog_cols = [

@@ -121,9 +121,6 @@ class IAService:
             # Usually routers expect an object or dict.
             # Let's return the full dict of the challenge.
             return self._get_challenge_by_date(hoy)
-        
-        if not self.client:
-            return None
 
         try:
             # 1. Previous history
@@ -137,7 +134,8 @@ class IAService:
                 "lenguajes": ["Python", "JavaScript", "Java"]
             }
             
-            desafio_raw, timestamp = generar_desafio_diario(self.client, user_info, historia_titulos)
+            # Now using the static generator
+            desafio_raw, timestamp = generar_desafio_diario(None, user_info, historia_titulos)
             
             if not desafio_raw:
                 return None
