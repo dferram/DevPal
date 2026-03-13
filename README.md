@@ -27,10 +27,6 @@ cd DevPal
 # Abre SETUP_LOCAL.md para instrucciones detalladas
 ```
 
-**📚 [Guía Completa de Configuración Local](SETUP_LOCAL.md)**
-
-**Nota:** Las funcionalidades de IA están temporalmente **bloqueadas** para desarrollo local. La aplicación funciona completamente sin ellas.
-
 ---
 
 ## Inspiration
