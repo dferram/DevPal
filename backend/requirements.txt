@@ -13,3 +13,6 @@ RestrictedPython==8.1
 starlette==0.38.2
 python-multipart==0.0.9
 sqlalchemy==2.0.36
+pytest==8.3.3
+pytest-asyncio==0.24.0
+httpx==0.27.2
