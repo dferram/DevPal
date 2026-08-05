@@ -1,0 +1,11 @@
+# Fase 1: Seguridad Crítica - Instalación de Dependencias
+
+# SlowAPI para rate limiting
+slowapi==0.1.9
+
+# RestrictedPython para sandboxing
+RestrictedPython==7.0
+
+# Ya incluidas (verificar):
+# passlib[bcrypt]>=1.7.4
+# python-dotenv>=1.0.0
