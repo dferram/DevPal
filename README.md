@@ -2,7 +2,6 @@
 
   <img src="assets/informatica.png" alt="Facultad de Informatica Logo" height="110px" style="margin-right: 25px;">
   <img src="assets/devpal-mascot.png" alt="DevPal Logo" height="110px" style="margin-right: 25px;">
-  <img src="assets/Logo_INDAUTOR.png" alt="INDAUTOR Logo" height="110px">
 
 ### DevPal — Full-Stack Developer Companion Platform
 
@@ -22,21 +21,18 @@ A high-performance full-stack ecosystem engineered to accelerate developer compe
 
 ---
 
+<a href="https://indautor.gob.mx/"><img src="https://img.shields.io/badge/Intellectual_Property-Registered-005C3B?style=flat-square&logo=libreofficewriter&logoColor=white"/></a>
+
+---
+
 ## Table of Contents
 
 - [Objective](#objective)
 - [System Architecture](#system-architecture)
 - [Project Structure](#project-structure)
 - [Prerequisites](#prerequisites)
-- [Step-by-Step Setup Guide](#step-by-step-setup-guide)
-  - [Step 1: Repository Cloning](#step-1--repository-cloning)
-  - [Step 2: Backend Configuration & Execution](#step-2--backend-configuration--execution)
-  - [Step 3: Frontend Client Configuration & Execution](#step-3--frontend-client-configuration--execution)
 - [REST API Specification](#rest-api-specification)
-- [Testing & Quality Assurance](#testing--quality-assurance)
 - [Security Architecture](#security-architecture)
-- [Common Troubleshooting](#common-troubleshooting)
-- [Useful Resources](#useful-resources)
 
 ---
 
@@ -156,126 +152,6 @@ The following software packages must be installed on the host machine:
 
 ---
 
-## Step-by-Step Setup Guide
-
-### Step 1 — Repository Cloning
-
-Open your terminal and clone the repository:
-
-```bash
-git clone https://github.com/dferram/DevPal.git
-cd DevPal
-```
-
----
-
-### Step 2 — Backend Configuration & Execution
-
-#### 2.1 — Create and Activate Python Virtual Environment
-
-**On Windows (PowerShell):**
-```powershell
-cd backend
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-```
-
-**On macOS / Linux:**
-```bash
-cd backend
-python3 -m venv .venv
-source .venv/bin/activate
-```
-
-#### 2.2 — Install Backend Dependencies
-
-```bash
-pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-#### 2.3 — Configure Environment Variables
-
-Create a file named `.env` inside the `backend/` directory:
-
-```ini
-# PostgreSQL Connection Parameters
-DB_HOST=localhost
-DB_NAME=devpal_db
-DB_USER=postgres
-DB_PASSWORD=your_secure_password
-DB_PORT=5432
-
-# External API Integrations
-GEMINI_API_KEY=your_google_gemini_api_key
-
-# Runtime Parameters
-PORT=8001
-ENVIRONMENT=development
-LOG_LEVEL=INFO
-DEBUG=True
-CORS_ORIGINS=*
-ENABLE_SCHEDULED_JOBS=True
-RATE_LIMIT_ENABLED=True
-```
-
-#### 2.4 — Initialize Database Schema
-
-```bash
-python poblar_datos_prueba.py
-```
-
-#### 2.5 — Launch Backend Server
-
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
-```
-
-Interactive API documentation will be available at `http://localhost:8001/docs`.
-
----
-
-### Step 3 — Frontend Client Configuration & Execution
-
-#### 3.1 — Install Frontend Dependencies
-
-Open a new terminal window:
-
-```bash
-cd frontend
-npm install
-```
-
-#### 3.2 — Configure Frontend Environment Variables
-
-Create a file named `.env` inside the `frontend/` directory:
-
-```ini
-# Backend API Base URL
-# For Web / Browser testing:
-EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
-
-# For Android Emulator:
-# EXPO_PUBLIC_API_BASE_URL=http://10.0.2.2:8001
-
-# For Physical Mobile Devices on the same LAN:
-# EXPO_PUBLIC_API_BASE_URL=http://192.168.1.X:8001
-```
-
-#### 3.3 — Launch Metro Bundler
-
-```bash
-# Start Expo development server
-npx expo start
-
-# Alternatively, target a specific platform directly:
-npx expo start --web       # Browser execution
-npx expo start --android   # Android emulator / physical device
-npx expo start --ios       # iOS simulator (macOS required)
-```
-
----
-
 ## REST API Specification
 
 | Module | Method | Endpoint | Description |
@@ -302,28 +178,6 @@ npx expo start --ios       # iOS simulator (macOS required)
 
 ---
 
-## Testing & Quality Assurance
-
-### Backend Test Suite Execution
-
-```bash
-cd backend
-# Execute Pytest test suites with code coverage metrics
-pytest -v --cov=app --cov-report=term-missing
-```
-
-### Frontend Static Analysis & Type Checking
-
-```bash
-cd frontend
-# TypeScript compiler type validation
-npx tsc --noEmit
-
-# ESLint static code analysis
-npm run lint
-```
-
----
 
 ## Security Architecture
 
@@ -332,18 +186,6 @@ npm run lint
 3. **Payload Inspection:** Strict 10 MB payload limits enforced via `RequestSizeLimitMiddleware`.
 4. **Client Secret Protection:** Session tokens stored in platform-native encrypted storage (`Expo SecureStore`) on iOS and Android.
 5. **Rate Limiting:** Token-bucket rate limiting to mitigate denial-of-service attempts.
-
----
-
-## Common Troubleshooting
-
-| Issue | Root Cause | Solution |
-|---|---|---|
-| Frontend cannot connect to backend on mobile | `127.0.0.1` points to the mobile device itself, not the host machine | Update `frontend/.env` to use your computer's LAN IP (e.g., `http://192.168.1.50:8001`) or `10.0.2.2` on Android emulator |
-| Database connection refused | PostgreSQL service is stopped or port 5432 is blocked | Verify PostgreSQL service status and confirm credentials in `backend/.env` |
-| Missing Python modules | Virtual environment not activated prior to command execution | Activate `.venv` using `.venv\Scripts\Activate.ps1` (Windows) or `source .venv/bin/activate` (macOS/Linux) |
-| Git tracks `node_modules` | Files were cached before `.gitignore` was registered | Run `git rm -r --cached .` followed by `git add .` |
-| Expo bundler caching issues | Stale Metro bundler cache | Run `npx expo start -c` to clear the bundler cache |
 
 ---
 
